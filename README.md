@@ -1,6 +1,6 @@
 # Real-Time Traffic Flow Prediction Pipeline
 
-> **Current Status**: 🚀 Training YOLOv8m on 8,202 images (100 Epochs) - In Progress.
+> **Current Status**: 🚀 Training YOLOv8m on 8,202 images (50 Epochs) - In Progress.
 
 A hybrid system that combines Computer Vision (YOLOv8) with Macroscopic Traffic Modeling (Cell Transmission Model - CTM) to monitor road traffic density and predict congestion shockwaves in real-time.
 

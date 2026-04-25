@@ -11,11 +11,11 @@ dataset:
 model:
   name: "yolov8m.pt"  # Medium model - better accuracy than nano (yolov8n) with acceptable speed
   image_size: 640
-  batch_size: 8         # Reduced batch size for medium model (uses more GPU memory)
-  epochs: 75            # More epochs for better convergence
-  confidence_threshold: 0.50  # Higher = fewer false positives (people detected as cars)
+  batch_size: 8         # Safe for RTX 3050 4GB VRAM with yolov8m
+  epochs: 50            # Updated to 50 epochs as requested
+  confidence_threshold: 0.45  # Balanced threshold for precision/recall tradeoff
   iou_threshold: 0.45
-  patience: 25          # Allow more patience before early stopping
+  patience: 30          # Generous patience — let model find best weights
   learning_rate: 0.001
   weight_decay: 0.0005
   classes: [0, 1, 2, 3, 6] # Custom dataset: car, motorcycle, bus, truck, van
