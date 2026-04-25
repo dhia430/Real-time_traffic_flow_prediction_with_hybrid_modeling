@@ -1,0 +1,19 @@
+# OpenCV for image processing and visualization
+opencv-python>=4.8.0
+# Ultralytics for YOLOv8 (and potential YOLOv10 support)
+ultralytics>=8.0.0
+# Tracking algorithms (ByteTrack/SORT often rely on filterpy and scipy)
+filterpy
+lapx
+scipy
+# Data manipulation
+numpy>=1.23.0
+pandas
+# Configuration and environment
+PyYAML
+# Visualization and plotting
+matplotlib
+seaborn
+# Other utilities
+tqdm
+pytest

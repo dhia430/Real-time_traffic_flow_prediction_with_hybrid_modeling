@@ -1,0 +1,72 @@
+# ── Python ──────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+.eggs/
+
+# ── Virtual environments ─────────────────────────────────────────────────────
+venv/
+.venv/
+env/
+.env/
+ENV/
+
+# ── Jupyter / IPython ────────────────────────────────────────────────────────
+.ipynb_checkpoints/
+*.ipynb
+
+# ── Testing / coverage ───────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# ── IDE / Editor ─────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── OS ───────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Large / Binary assets ────────────────────────────────────────────────────
+# YOLO pre-trained weights (download separately via requirements or script)
+*.pt
+*.pth
+*.onnx
+*.engine
+*.weights
+
+# Videos / images datasets
+*.mp4
+*.avi
+*.mov
+*.mkv
+
+# Archives
+*.zip
+*.rar
+*.tar.gz
+*.gz
+*.7z
+
+# ── Dataset & output dirs ────────────────────────────────────────────────────
+data/extracted/
+data/real_traffic/
+outputs/
+runs/
+
+# ── Misc generated files ─────────────────────────────────────────────────────
+flake8_output.txt
+*.cache
+*.log

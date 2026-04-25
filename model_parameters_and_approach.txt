@@ -1,0 +1,29 @@
+Model Parameters and Data Prep Approach
+=======================================
+
+This document outlines the strategy taken to improve the YOLO object detection model precision and recall by filtering out "noisy" data and optimizing hyperparameters.
+
+1. Data Preparation Approach
+----------------------------
+- **Blur Image Filtering:** 
+  Blurry images usually degrade model training because features become hard to distinguish. We added an automated OpenCV-based filter (`cv2.Laplacian(image).var()`). Any image with a Laplacian variance below `100.0` is discarded entirely, meaning we feed only sharp representations into the model.
+  
+- **Strict Vehicle-Only Annotations:**
+  The baseline dataset may contain annotations for pedestrians, generic objects ('other'), etc. To force the model to focus strictly on transport mediums, we intercepted the dataset preparation loop. For every image, we parse its `.txt` label file and strip away any line representing pedestrians (ID `5`) or 'other' generic labels (ID `7`).
+  If an image is left with zero valid vehicle annotations after filtering, the entire image is discarded to prevent empty images from confusing the model during training.
+
+2. Model Parameters Explorer
+-----------------------------
+We enhanced `config.yaml` and `train_yolo.py` with several YOLOv8 tuning knobs targeted at maximizing Mean Average Precision (mAP) and Recall.
+
+- **`epochs: 50`**: Increased the max epochs from 10 to 50. Neural networks usually need more than 10 epochs to converge fully.
+- **`patience: 20`**: Added early stopping. If validation metrics do not improve for 20 straight epochs, training halts to prevent overfitting.
+- **`learning_rate (lr0): 0.001`**: A lower, stabilized learning rate to prevent the weights from wildly oscillating during fine-tuning.
+- **`weight_decay: 0.0005`**: Prevents overfitting regularization by slightly penalizing large weights in the neural network.
+
+3. Augmentations Enabled (in train_yolo.py)
+--------------------------------------------
+We injected data augmentation variables during training to artificially increase dataset variance and improve recall in difficult scenarios:
+- **`mosaic: 1.0`**: Combines 4 images into 1. This helps the model learn to identify objects at smaller scales and forces evaluating objects outside normal context.
+- **`mixup: 0.1`**: Overlays different images upon each other, enhancing model generalization.
+- **`hsv_h`, `hsv_s`, `hsv_v`**: Adjusts the Hue, Saturation, and Value. Minor color variances drastically improve robustness against changing weather or camera brightness.

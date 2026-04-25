@@ -1,0 +1,16 @@
+names:
+- car
+- motorcycle
+- bus
+- truck
+- bicycle
+- pedestrian
+- van
+- other
+nc: 8
+test: C:\Users\Dhia Gdara\OneDrive\Desktop\Real-time traffic flow prediction with
+  hybrid modeling\traffic_prediction\data\extracted\test\images
+train: C:\Users\Dhia Gdara\OneDrive\Desktop\Real-time traffic flow prediction with
+  hybrid modeling\traffic_prediction\data\extracted\train\images
+val: C:\Users\Dhia Gdara\OneDrive\Desktop\Real-time traffic flow prediction with hybrid
+  modeling\traffic_prediction\data\extracted\val\images

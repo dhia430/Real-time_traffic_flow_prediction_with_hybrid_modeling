@@ -1,0 +1,51 @@
+# Dataset settings
+dataset:
+  raw_zip_path: "../wtp4ssmwsd-1/obj.zip" # Relative to config run dir
+  extract_dir: "data/extracted"
+  train_split: 0.7
+  val_split: 0.2
+  test_split: 0.1
+  data_yaml_path: "data/data.yaml"
+
+# YOLO Model parameters
+model:
+  name: "yolov8m.pt"  # Medium model - better accuracy than nano (yolov8n) with acceptable speed
+  image_size: 640
+  batch_size: 8         # Reduced batch size for medium model (uses more GPU memory)
+  epochs: 75            # More epochs for better convergence
+  confidence_threshold: 0.50  # Higher = fewer false positives (people detected as cars)
+  iou_threshold: 0.45
+  patience: 25          # Allow more patience before early stopping
+  learning_rate: 0.001
+  weight_decay: 0.0005
+  classes: [0, 1, 2, 3, 6] # Custom dataset: car, motorcycle, bus, truck, van
+
+# Camera & ROI Parameters
+camera:
+  # Relative ROI polygon coordinates [x, y] (0.0 to 1.0)
+  # This ensures the ROI scales dynamically to the video resolution or webcam.
+  roi_points: [[0.2, 0.9], [0.8, 0.9], [0.6, 0.4], [0.4, 0.4]]
+  road_length_meters: 100.0 # Physical length of the ROI
+
+# Cell Transmission Model (CTM) Parameters
+ctm:
+  # Base parameters based on report Algorithm 1
+  cell_length_meters: 20.0 # Delta x
+  time_step_seconds: 1.0   # Delta t
+  free_flow_speed_m_s: 15.0 # v_f (approx 54 km/h)
+  jam_density_veh_m: 0.15   # rho_max (approx 1 veh per 6.6m)
+  max_flow_veh_s: 0.5       # q_max (flow capacity)
+  congestion_threshold: 0.08 # Density threshold to trigger a warning
+
+# Visualization settings
+visualization:
+  bbox_color: [0, 255, 0] # BGR format
+  text_color: [255, 255, 255]
+  roi_color: [255, 0, 0]
+  density_overlay: true
+  show_ids: true
+  show_roi: false  # Set to true to show the blue ROI trapeze on video output
+  congestion_colors:
+    free_flow: [0, 255, 0] # Green
+    heavy_traffic: [0, 165, 255] # Orange
+    jam: [0, 0, 255] # Red
