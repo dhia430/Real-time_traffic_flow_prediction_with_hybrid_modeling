@@ -82,18 +82,16 @@ def run_pipeline(video_path: str, config_path: str, output_path: str, max_frames
         # Step 1: Detect Vehicles
         detections = detector.detect(frame)
         
-        # Step 2: Track ID assignments
-        tracked_objects = tracker.update(detections)
+        # Step 2: Track ID assignments (pass frame dims for camera-type detection)
+        tracked_objects = tracker.update(detections, frame_h=height, frame_w=width)
         
-        # Calculate speeds
+        # Calculate speeds (Auto-calibration handles mpp)
         if not hasattr(tracker, 'meters_per_pixel'):
             roi_rel = density_estimator.roi_relative_points
-            min_y = min(p[1] for p in roi_rel) * height
-            max_y = max(p[1] for p in roi_rel) * height
-            roi_h = max(max_y - min_y, 1.0)
+            roi_h = max(max(p[1] for p in roi_rel) - min(p[1] for p in roi_rel), 0.1) * height
             tracker.meters_per_pixel = density_estimator.road_length / roi_h
             
-        tracker.calculate_speeds(fps if fps > 0 else 30, tracker.meters_per_pixel)
+        tracker.calculate_speeds(fps=fps if fps > 0 else 30, manual_mpp=tracker.meters_per_pixel)
         
         # Step 3: Density Calculation in ROI
         current_density = density_estimator.calculate_density(tracked_objects, width, height)

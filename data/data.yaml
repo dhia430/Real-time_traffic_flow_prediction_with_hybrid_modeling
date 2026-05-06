@@ -8,9 +8,30 @@ names:
 - van
 - other
 nc: 8
-test: C:\Users\Dhia Gdara\OneDrive\Desktop\Real-time traffic flow prediction with
-  hybrid modeling\traffic_prediction\data\extracted\test\images
-train: C:\Users\Dhia Gdara\OneDrive\Desktop\Real-time traffic flow prediction with
-  hybrid modeling\traffic_prediction\data\extracted\train\images
-val: C:\Users\Dhia Gdara\OneDrive\Desktop\Real-time traffic flow prediction with hybrid
+test:
+- C:\Users\Dhia Gdara\OneDrive\Desktop\Real-time traffic flow prediction with hybrid
+  modeling\traffic_prediction\data\extracted\test\images
+- C:\Users\Dhia Gdara\OneDrive\Desktop\Real-time traffic flow prediction with hybrid
+  modeling\traffic_prediction\data\extracted\merged_20260425_150145\test\images
+- C:\Users\Dhia Gdara\OneDrive\Desktop\Real-time traffic flow prediction with hybrid
+  modeling\traffic_prediction\data\extracted\merged_20260425_151311\test\images
+- C:\Users\Dhia Gdara\OneDrive\Desktop\Real-time traffic flow prediction with hybrid
+  modeling\traffic_prediction\data\extracted\merged_20260425_153820\test\images
+train:
+- C:\Users\Dhia Gdara\OneDrive\Desktop\Real-time traffic flow prediction with hybrid
+  modeling\traffic_prediction\data\extracted\train\images
+- C:\Users\Dhia Gdara\OneDrive\Desktop\Real-time traffic flow prediction with hybrid
+  modeling\traffic_prediction\data\extracted\merged_20260425_150145\train\images
+- C:\Users\Dhia Gdara\OneDrive\Desktop\Real-time traffic flow prediction with hybrid
+  modeling\traffic_prediction\data\extracted\merged_20260425_151311\train\images
+- C:\Users\Dhia Gdara\OneDrive\Desktop\Real-time traffic flow prediction with hybrid
+  modeling\traffic_prediction\data\extracted\merged_20260425_153820\train\images
+val:
+- C:\Users\Dhia Gdara\OneDrive\Desktop\Real-time traffic flow prediction with hybrid
   modeling\traffic_prediction\data\extracted\val\images
+- C:\Users\Dhia Gdara\OneDrive\Desktop\Real-time traffic flow prediction with hybrid
+  modeling\traffic_prediction\data\extracted\merged_20260425_150145\val\images
+- C:\Users\Dhia Gdara\OneDrive\Desktop\Real-time traffic flow prediction with hybrid
+  modeling\traffic_prediction\data\extracted\merged_20260425_151311\val\images
+- C:\Users\Dhia Gdara\OneDrive\Desktop\Real-time traffic flow prediction with hybrid
+  modeling\traffic_prediction\data\extracted\merged_20260425_153820\val\images

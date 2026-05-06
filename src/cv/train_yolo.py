@@ -66,19 +66,21 @@ def train_model(config_path: str, weights_path: str = None, data_yaml_override: 
         epochs=epochs,
         batch=batch_size,
         imgsz=imgsz,
-        patience=patience,
+        patience=15,               # Faster early stopping
         lr0=lr0,
         lrf=0.01,                 # Final learning rate = lr0 * lrf (cosine schedule)
         weight_decay=weight_decay,
         optimizer='AdamW',        # AdamW generalises better than SGD for fine-tuning
         warmup_epochs=3,          # Gradual warmup to stabilise early training
+        freeze=15,                # Freeze more layers (backbone) to speed up training
+        close_mosaic=10,          # Disable mosaic at the end for accuracy
         # --- Data Augmentation (key for precision/recall improvement) ---
         mosaic=1.0,               # Mosaic: combines 4 images — best mAP booster
-        mixup=0.15,               # Mixup: blends 2 images — helps generalisation
+        mixup=0.15,               # Slightly increased mixup for better generalisation
         copy_paste=0.1,           # Copy-paste augmentation for small objects
         degrees=10.0,             # Random rotation ±10° (handles tilted cameras)
         translate=0.1,            # Random translation ±10%
-        scale=0.5,                # Random scale ±50% (helps detect far/close cars)
+        scale=0.6,                # Increased scale range for varied vehicle sizes
         shear=2.0,                # Slight shear for perspective variety
         perspective=0.0005,       # Subtle perspective distortion
         flipud=0.0,               # No vertical flip (cars don't drive upside down)
@@ -94,7 +96,7 @@ def train_model(config_path: str, weights_path: str = None, data_yaml_override: 
         exist_ok=True,
         plots=True,
         val=True,                 # Always validate after each epoch
-        save_period=10,           # Save checkpoint every 10 epochs
+        save_period=5,            # Save checkpoint every 5 epochs
     )
     
     logging.info(f"Training completed. Best weights saved to models/saved_models/weights/best.pt")

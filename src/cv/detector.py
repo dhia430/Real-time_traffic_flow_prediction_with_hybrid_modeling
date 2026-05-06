@@ -36,9 +36,8 @@ class VehicleDetector:
         self.model = YOLO(self.model_path)
         
         # Minimum bounding box area in pixels to be considered a real vehicle.
-        # Pedestrians/shadows are usually very small boxes. A car at any reasonable
-        # distance should be at least 30x30 = 900 pixels.
-        self.min_bbox_area = 1600  # 40x40 pixels minimum
+        # Lowered from 2000 to 500 to catch smaller/distant vehicles.
+        self.min_bbox_area = 500  
         
     def detect(self, frame: np.ndarray):
         """
@@ -50,7 +49,7 @@ class VehicleDetector:
         Returns:
             list: Parsed bounding boxes in format [x1, y1, x2, y2, conf, cls]
         """
-        # Run YOLO inference on GPU 0 if available, otherwise CPU
+        # Run YOLO inference
         device_id = '0' if torch.cuda.is_available() else 'cpu'
         results = self.model.predict(
             source=frame,
@@ -58,10 +57,12 @@ class VehicleDetector:
             iou=self.iou_threshold,
             classes=self.target_classes,
             device=device_id,
-            verbose=False # Keep logs clean
+            verbose=False
         )
         
         detections = []
+        raw_count = len(results[0].boxes) if len(results) > 0 else 0
+        
         if len(results) > 0:
             boxes = results[0].boxes
             for box in boxes:
@@ -69,22 +70,25 @@ class VehicleDetector:
                 conf = box.conf[0].cpu().item()
                 cls = int(box.cls[0].cpu().item())
                 
-                # Filter out vertical anomalies like street posts and billboards
-                # Cars, buses, and trucks are not extremely tall vertically
                 w = x2 - x1
                 h = y2 - y1
                 area = w * h
                 
-                # --- Filter 1: Minimum size (removes tiny pedestrian/shadow blobs) ---
+                # --- Filter 1: Minimum size (removes small noise/distant blobs) ---
                 if area < self.min_bbox_area:
                     continue
                 
-                # --- Filter 2: Aspect ratio (removes street posts, billboards) ---
+                # --- Filter 2: Aspect ratio (removes vertical objects) ---
                 if w > 0:
                     aspect_ratio = h / w
-                    # Motorcycles (cls 1) can be slightly vertical, allow it.
-                    # Cars (0), bus (2), truck (3), van (6) should NOT be very tall.
-                    if aspect_ratio > 1.8 and cls not in [1]:
+                    # Bus (2) and Truck (3) can be taller, but Cars (0) and Vans (6) should be wider.
+                    # This helps distinguish vehicles from poles/trees.
+                    # Relaxed limits for high-angle perspective distortion
+                    if cls in [0, 6] and aspect_ratio > 1.5:
+                        continue
+                    if cls in [2, 3] and aspect_ratio > 2.0:
+                        continue
+                    if aspect_ratio > 3.0: # Extreme verticality is never a vehicle
                         continue
                         
                 detections.append([x1, y1, x2, y2, conf, cls])

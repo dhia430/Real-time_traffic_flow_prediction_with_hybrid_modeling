@@ -16,7 +16,13 @@ def create_directory_structure(base_dir: str):
     """
     Creates the necessary YOLO directory structure under base_dir.
     """
-    base_path = Path(base_dir)
+    # Use absolute path with Windows long path prefix to avoid MAX_PATH issues
+    abs_base = os.path.abspath(base_dir)
+    if os.name == 'nt' and not abs_base.startswith("\\\\?\\"):
+        base_path = Path("\\\\?\\" + abs_base)
+    else:
+        base_path = Path(abs_base)
+        
     for split in ['train', 'val', 'test']:
         for sub in ['images', 'labels']:
             (base_path / split / sub).mkdir(parents=True, exist_ok=True)
@@ -36,8 +42,14 @@ def split_data(raw_zip_path: str, extract_dir: str, splits: tuple = (0.7, 0.2, 0
         logging.error(f"Dataset zip not found at {raw_zip_path}")
         return
 
-    # Temporary extraction folder
-    temp_dir = Path("temp_extract")
+    # Use absolute path with Windows long path prefix to avoid MAX_PATH issues
+    abs_temp = os.path.abspath("t_e")
+    if os.name == 'nt' and not abs_temp.startswith("\\\\?\\"):
+        temp_dir_str = "\\\\?\\" + abs_temp
+    else:
+        temp_dir_str = abs_temp
+    
+    temp_dir = Path(temp_dir_str)
     temp_dir.mkdir(exist_ok=True)
     
     try:
@@ -45,7 +57,12 @@ def split_data(raw_zip_path: str, extract_dir: str, splits: tuple = (0.7, 0.2, 0
         with zipfile.ZipFile(raw_zip_path, 'r') as zip_ref:
             zip_ref.extractall(temp_dir)
             
-        # Find all .jpg files
+        # Recursive extraction for nested zips (e.g., obj.zip)
+        for nested_zip in list(temp_dir.rglob("*.zip")):
+            logging.info(f"Extracting nested zip: {nested_zip.name}")
+            with zipfile.ZipFile(nested_zip, 'r') as zf:
+                zf.extractall(nested_zip.parent)
+            os.remove(nested_zip)
         all_images = list(temp_dir.rglob("*.jpg"))
         logging.info(f"Found {len(all_images)} images.")
         
@@ -60,6 +77,12 @@ def split_data(raw_zip_path: str, extract_dir: str, splits: tuple = (0.7, 0.2, 0
 
         for img_path in all_images:
             txt_path = img_path.with_suffix('.txt')
+            if not txt_path.exists():
+                if img_path.parent.name == 'images':
+                    potential_txt = img_path.parent.parent / 'labels' / img_path.with_suffix('.txt').name
+                    if potential_txt.exists():
+                        txt_path = potential_txt
+            
             if not txt_path.exists():
                 continue
                 
@@ -137,7 +160,14 @@ def merge_and_split(zip1: str, zip2: str, extract_dir: str, splits: tuple):
     """
     Extracts two zip files into one temp folder, filters, merges, then splits.
     """
-    temp_dir = Path("temp_extract_merged")
+    # Use absolute path with Windows long path prefix to avoid MAX_PATH issues
+    abs_temp = os.path.abspath("t_m")
+    if os.name == 'nt' and not abs_temp.startswith("\\\\?\\"):
+        temp_dir_str = "\\\\?\\" + abs_temp
+    else:
+        temp_dir_str = abs_temp
+
+    temp_dir = Path(temp_dir_str)
     temp_dir.mkdir(exist_ok=True)
     
     try:
@@ -147,14 +177,19 @@ def merge_and_split(zip1: str, zip2: str, extract_dir: str, splits: tuple):
                 continue
             logging.info(f"Extracting zip {i}: {zip_path}...")
             with zipfile.ZipFile(zip_path, 'r') as zf:
-                zf.extractall(temp_dir / f"zip{i}")
-        
-        # Find all images from both zips
+                zf.extractall(temp_dir / f"{i}")
+            
+            # Recursive extraction for nested zips
+            for nested_zip in list((temp_dir / f"{i}").rglob("*.zip")):
+                logging.info(f"Extracting nested zip in {i}: {nested_zip.name}")
+                with zipfile.ZipFile(nested_zip, 'r') as nzf:
+                    nzf.extractall(nested_zip.parent)
+                os.remove(nested_zip)
         all_images = list(temp_dir.rglob("*.jpg")) + list(temp_dir.rglob("*.png"))
         logging.info(f"Total images found across both datasets: {len(all_images)}")
         
         blur_threshold = 100.0
-        valid_class_ids = {0, 1, 2, 3, 6}  # car, motorcycle, bus, truck, van — NO pedestrians
+        valid_class_ids = {0, 1, 2, 3, 4, 6}  # car, motorcycle, bus, truck, bicycle, van
         
         valid_pairs = []
         filtered_blur = 0
@@ -162,6 +197,12 @@ def merge_and_split(zip1: str, zip2: str, extract_dir: str, splits: tuple):
 
         for img_path in all_images:
             txt_path = img_path.with_suffix('.txt')
+            if not txt_path.exists():
+                if img_path.parent.name == 'images':
+                    potential_txt = img_path.parent.parent / 'labels' / img_path.with_suffix('.txt').name
+                    if potential_txt.exists():
+                        txt_path = potential_txt
+
             if not txt_path.exists():
                 continue
             img = cv2.imread(str(img_path))
@@ -176,13 +217,28 @@ def merge_and_split(zip1: str, zip2: str, extract_dir: str, splits: tuple):
             valid_lines = []
             with open(txt_path, 'r') as f:
                 lines = f.readlines()
+            
+            # --- Class Remapping for consistency between datasets ---
+            # If dataset 2 (Roboflow) has different IDs, map them to master IDs:
+            # Roboflow: 0:Bike, 1:Bus, 2:Car, 3:Motobike, 4:Truck
+            # Master: 0:Car, 1:Motorcycle, 2:Bus, 3:Truck, 4:Bicycle, 5:Pedestrian, 6:Van, 7:Other
+            # Mapping for Roboflow (detected by its smaller nc=5):
+            roboflow_map = {0: 4, 1: 2, 2: 0, 3: 1, 4: 3}
+            
             for line in lines:
                 parts = line.strip().split()
                 if not parts: continue
                 class_id = int(parts[0])
+                
+                # Check if this folder looks like Roboflow (subfolder 2)
+                if f"{i}" == "2" and class_id in roboflow_map:
+                    class_id = roboflow_map[class_id]
+
                 if class_id in valid_class_ids:
                     has_vehicle = True
-                    valid_lines.append(line)
+                    # Reconstruct line with potentially remapped ID
+                    parts[0] = str(class_id)
+                    valid_lines.append(" ".join(parts) + "\n")
             if not has_vehicle:
                 filtered_classes += 1
                 continue
@@ -218,10 +274,52 @@ def merge_and_split(zip1: str, zip2: str, extract_dir: str, splits: tuple):
             shutil.rmtree(temp_dir)
 
 
+def update_master_yaml(master_yaml: str, new_data_dir: str):
+    """
+    Updates or creates the master data.yaml to include paths from all datasets.
+    """
+    new_train = os.path.abspath(os.path.join(new_data_dir, 'train', 'images'))
+    new_val   = os.path.abspath(os.path.join(new_data_dir, 'val',   'images'))
+    new_test  = os.path.abspath(os.path.join(new_data_dir, 'test',  'images'))
+
+    names = ['car', 'motorcycle', 'bus', 'truck', 'bicycle', 'pedestrian', 'van', 'other']
+    nc = len(names)
+
+    if os.path.exists(master_yaml):
+        with open(master_yaml, 'r') as f:
+            data = yaml.safe_load(f)
+            
+        # Ensure fields are lists
+        for key in ['train', 'val', 'test']:
+            if key not in data:
+                data[key] = []
+            elif isinstance(data[key], str):
+                data[key] = [data[key]]
+        
+        # Append new paths if not already present
+        if new_train not in data['train']: data['train'].append(new_train)
+        if new_val   not in data['val']:   data['val'].append(new_val)
+        if new_test  not in data['test']:  data['test'].append(new_test)
+        
+        data['nc'] = nc
+        data['names'] = names
+    else:
+        data = {
+            'train': [new_train],
+            'val':   [new_val],
+            'test':  [new_test],
+            'nc':    nc,
+            'names': names
+        }
+
+    os.makedirs(os.path.dirname(master_yaml), exist_ok=True)
+    with open(master_yaml, 'w') as f:
+        yaml.dump(data, f, default_flow_style=False)
+    logging.info(f"Updated master YAML configuration at {master_yaml}")
+
 def generate_data_yaml(dest_yaml: str, data_dir: str):
     """
-    Generates data.yaml for YOLOv8.
-    Only includes the 5 vehicle classes — pedestrians and 'other' are excluded.
+    Generates a YAML for a single dataset (useful for new-only fine-tuning).
     """
     data = {
         'train': os.path.abspath(os.path.join(data_dir, 'train', 'images')),
@@ -234,7 +332,7 @@ def generate_data_yaml(dest_yaml: str, data_dir: str):
     os.makedirs(os.path.dirname(dest_yaml), exist_ok=True)
     with open(dest_yaml, 'w') as f:
         yaml.dump(data, f, default_flow_style=False)
-    logging.info(f"Generated YAML configuration at {dest_yaml}")
+    logging.info(f"Generated dataset YAML at {dest_yaml}")
 
 def main():
     parser = argparse.ArgumentParser(description="Split dataset.")
@@ -256,37 +354,50 @@ def main():
     test_s  = ds_conf.get('test_split',  0.1)
 
     if args.raw_zip and args.raw_zip2:
-        # --- MERGE two datasets into one timestamped folder ---
+        # --- MERGE two datasets into a NEW subfolder ---
         timestamp   = datetime.now().strftime('%Y%m%d_%H%M%S')
-        extract_dir = f"data/extracted_{timestamp}"
-        yaml_path   = f"data/data_{timestamp}.yaml"
+        extract_dir = f"data/extracted/merged_{timestamp}"
+        master_yaml = ds_conf.get('data_yaml_path', 'data/data.yaml')
+        new_yaml    = "data/data_new.yaml"
+        
         logging.info(f"Merging TWO datasets into: {extract_dir}")
         merge_and_split(args.raw_zip, args.raw_zip2, extract_dir, splits=(train_s, val_s, test_s))
-        generate_data_yaml(yaml_path, extract_dir)
+        
+        # Update Master YAML (for Option 2-2)
+        update_master_yaml(master_yaml, extract_dir)
+        # Create New-Only YAML (for Option 2-1)
+        generate_data_yaml(new_yaml, extract_dir)
+        
         with open('data/.last_new_data_yaml.txt', 'w') as f:
-            f.write(os.path.abspath(yaml_path))
-        logging.info(f"Merged dataset ready. Use fine-tuning option 2 to train on it.")
+            f.write(os.path.abspath(new_yaml))
+        logging.info(f"Merged dataset added. 'Train on existing' will now include it.")
 
     elif args.raw_zip:
-        # --- Single new dataset: extract to a fresh timestamped folder ---
+        # --- Single new dataset: extract to a NEW subfolder ---
         timestamp   = datetime.now().strftime('%Y%m%d_%H%M%S')
-        extract_dir = f"data/extracted_{timestamp}"
-        yaml_path   = f"data/data_{timestamp}.yaml"
+        extract_dir = f"data/extracted/ds_{timestamp}"
+        master_yaml = ds_conf.get('data_yaml_path', 'data/data.yaml')
+        new_yaml    = "data/data_new.yaml"
+        
         logging.info(f"New dataset detected. Extracting to: {extract_dir}")
         split_data(args.raw_zip, extract_dir, splits=(train_s, val_s, test_s))
-        generate_data_yaml(yaml_path, extract_dir)
+        
+        # Update Master YAML (for Option 2-2)
+        update_master_yaml(master_yaml, extract_dir)
+        # Create New-Only YAML (for Option 2-1)
+        generate_data_yaml(new_yaml, extract_dir)
+        
         with open('data/.last_new_data_yaml.txt', 'w') as f:
-            f.write(os.path.abspath(yaml_path))
-        logging.info(f"New dataset ready. Use fine-tuning option 2 to train on it.")
+            f.write(os.path.abspath(new_yaml))
+        logging.info(f"New dataset added. 'Train on existing' will now include it.")
 
     else:
-        # --- Existing dataset: re-use original extracted folder ---
-        extract_dir = ds_conf.get('extract_dir', 'data/extracted')
-        yaml_path   = ds_conf.get('data_yaml_path', 'data/data.yaml')
-        raw_zip     = ds_conf.get('raw_zip_path', '../wtp4ssmwsd-1/obj.zip')
-        logging.info(f"Using existing dataset at: {extract_dir}")
-        split_data(raw_zip, extract_dir, splits=(train_s, val_s, test_s))
-        generate_data_yaml(yaml_path, extract_dir)
+        # --- Existing dataset: re-verify master YAML ---
+        master_yaml = ds_conf.get('data_yaml_path', 'data/data.yaml')
+        if os.path.exists(master_yaml):
+            logging.info(f"Existing master dataset found at: {master_yaml}")
+        else:
+            logging.error(f"No existing dataset found. Please run Option 1 first.")
 
 if __name__ == "__main__":
     main()

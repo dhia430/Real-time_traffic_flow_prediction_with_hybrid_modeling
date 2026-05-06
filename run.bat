@@ -10,22 +10,25 @@ pip install -r requirements.txt > nul 2>&1
 
 :menu
 echo.
-echo Please select an option:
-echo 1) Prepare Dataset (Extract and Split)
-echo 2) Train YOLO Model
-echo 3) Run Pipeline on Video
-echo 4) Run Tests (CTM, Density, etc.)
-echo 5) Run Verification Scripts
-echo 6) Run Pipeline on Live Camera
+echo 1) Prepare Dataset (Images/Zips)
+echo 2) Extract from VIDEO (Auto-Label)
+echo 3) Train YOLO Model
+echo 4) Run Pipeline on Video
+echo 5) Run Tests (CTM, Density, etc.)
+echo 6) Run Verification Scripts
+echo 7) Run Pipeline on Live Camera
+echo 8) 1-Step AUTO-TRAIN on New Data (ZIP)
 echo.
-set /p choice="Enter choice (1-6): "
+set /p choice="Enter choice (1-8): "
 
 if "%choice%"=="1" goto prepare_dataset
-if "%choice%"=="2" goto train_yolo
-if "%choice%"=="3" goto run_pipeline
-if "%choice%"=="4" goto run_tests
-if "%choice%"=="5" goto run_scripts
-if "%choice%"=="6" goto run_live
+if "%choice%"=="2" goto extract_video
+if "%choice%"=="3" goto train_yolo
+if "%choice%"=="4" goto run_pipeline
+if "%choice%"=="5" goto run_tests
+if "%choice%"=="6" goto run_scripts
+if "%choice%"=="7" goto run_live
+if "%choice%"=="8" goto auto_train
 
 echo Invalid choice. Exiting.
 goto end
@@ -66,6 +69,16 @@ goto prompt_continue
 :prepare_existing
 echo Preparing existing dataset...
 python src\utils\data_splitter.py
+goto prompt_continue
+
+:extract_video
+echo.
+set /p video_input="Enter path to video file: "
+echo Extracting and auto-labeling frames (using best.pt)...
+python src\utils\add_video_to_dataset.py --video "%video_input%"
+echo.
+echo Video frames added to data/extracted/video_data.
+echo Now run option 1 (Prepare Dataset) and choose "Existing dataset" to merge them.
 goto prompt_continue
 
 :train_yolo
@@ -121,6 +134,46 @@ echo Running verification scripts...
 python verify_detection.py
 python verify_density.py
 python verify_ctm.py
+goto auto_train_jump
+
+:auto_train
+echo.
+echo ===========================================
+echo 1-STEP AUTO-TRAIN ON NEW ZIP DATA
+echo ===========================================
+set /p zip_path="Enter path to your ZIP file: "
+set "zip_path=%zip_path:"=%"
+
+if not exist "%zip_path%" (
+    echo ERROR: File not found at %zip_path%
+    goto prompt_continue
+)
+
+echo.
+echo Step 1: Extracting and Preparing Dataset...
+python src\utils\data_splitter.py --raw_zip "%zip_path%"
+
+REM Check if the splitter created a YAML log
+if not exist "data\.last_new_data_yaml.txt" (
+    echo ERROR: Dataset preparation failed.
+    goto prompt_continue
+)
+
+set /p NEW_YAML=<"data\.last_new_data_yaml.txt"
+
+echo.
+echo Step 2: Training (Fine-tuning) with Optimized Parameters...
+echo Using new dataset: %NEW_YAML%
+python src\cv\train_yolo.py --config config\config.yaml --weights models\saved_models\weights\best.pt --data_yaml "%NEW_YAML%"
+
+echo.
+echo ===========================================
+echo AUTO-TRAIN COMPLETE!
+echo New weights are saved in models/saved_models/weights/best.pt
+echo ===========================================
+goto prompt_continue
+
+:auto_train_jump
 goto prompt_continue
 
 :prompt_continue

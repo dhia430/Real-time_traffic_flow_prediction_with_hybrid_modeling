@@ -5,17 +5,17 @@ dataset:
   train_split: 0.7
   val_split: 0.2
   test_split: 0.1
-  data_yaml_path: "data/data.yaml"
+  data_yaml_path: "data/master_dataset.yaml"
 
 # YOLO Model parameters
 model:
-  name: "yolov8m.pt"  # Medium model - better accuracy than nano (yolov8n) with acceptable speed
+  name: "yolov8s.pt"  # Using small model for speed-precision balance on 2.5GB data
   image_size: 640
-  batch_size: 8         # Safe for RTX 3050 4GB VRAM with yolov8m
-  epochs: 50            # Updated to 50 epochs as requested
-  confidence_threshold: 0.45  # Balanced threshold for precision/recall tradeoff
+  batch_size: 16        # Safe for most GPUs; increase to 32 if you have >8GB VRAM
+  epochs: 30            # Fewer epochs needed with large data and frozen backbone
+  confidence_threshold: 0.30  
   iou_threshold: 0.45
-  patience: 30          # Generous patience — let model find best weights
+  patience: 10          # Faster early stopping
   learning_rate: 0.001
   weight_decay: 0.0005
   classes: [0, 1, 2, 3, 6] # Custom dataset: car, motorcycle, bus, truck, van
@@ -23,29 +23,28 @@ model:
 # Camera & ROI Parameters
 camera:
   # Relative ROI polygon coordinates [x, y] (0.0 to 1.0)
-  # This ensures the ROI scales dynamically to the video resolution or webcam.
-  roi_points: [[0.2, 0.9], [0.8, 0.9], [0.6, 0.4], [0.4, 0.4]]
-  road_length_meters: 100.0 # Physical length of the ROI
+  # This covers the main road area.
+  roi_points: [[0.1, 0.95], [0.9, 0.95], [0.7, 0.3], [0.3, 0.3]]
+  road_length_meters: 120.0 # Adjusted to cover more of the road line
 
 # Cell Transmission Model (CTM) Parameters
 ctm:
-  # Base parameters based on report Algorithm 1
-  cell_length_meters: 20.0 # Delta x
-  time_step_seconds: 1.0   # Delta t
-  free_flow_speed_m_s: 15.0 # v_f (approx 54 km/h)
-  jam_density_veh_m: 0.15   # rho_max (approx 1 veh per 6.6m)
-  max_flow_veh_s: 0.5       # q_max (flow capacity)
-  congestion_threshold: 0.08 # Density threshold to trigger a warning
+  cell_length_meters: 20.0 
+  time_step_seconds: 1.0   
+  free_flow_speed_m_s: 15.0 
+  jam_density_veh_m: 0.15   
+  max_flow_veh_s: 0.5       
+  congestion_threshold: 0.08 
 
 # Visualization settings
 visualization:
-  bbox_color: [0, 255, 0] # BGR format
+  bbox_color: [0, 255, 0] 
   text_color: [255, 255, 255]
   roi_color: [255, 0, 0]
   density_overlay: true
   show_ids: true
-  show_roi: false  # Set to true to show the blue ROI trapeze on video output
+  show_roi: false  # HIDDEN: Removes the "trapeze" from the screen
   congestion_colors:
-    free_flow: [0, 255, 0] # Green
-    heavy_traffic: [0, 165, 255] # Orange
-    jam: [0, 0, 255] # Red
+    free_flow: [0, 255, 0] 
+    heavy_traffic: [0, 165, 255] 
+    jam: [0, 0, 255] 

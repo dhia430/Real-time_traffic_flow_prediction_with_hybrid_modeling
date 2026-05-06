@@ -1,0 +1,37 @@
+names:
+- car
+- motorcycle
+- bus
+- truck
+- bicycle
+- pedestrian
+- van
+- other
+nc: 8
+test:
+- \\?\C:\Users\Dhia Gdara\OneDrive\Desktop\Real-time traffic flow prediction with
+  hybrid modeling\traffic_prediction\data\master_dataset\test\images
+- C:\Users\Dhia Gdara\OneDrive\Desktop\Real-time traffic flow prediction with hybrid
+  modeling\traffic_prediction\data\extracted\ds_20260426_195223\test\images
+- C:\Users\Dhia Gdara\OneDrive\Desktop\Real-time traffic flow prediction with hybrid
+  modeling\traffic_prediction\data\extracted\ds_20260506_111516\test\images
+- C:\Users\Dhia Gdara\OneDrive\Desktop\Real-time traffic flow prediction with hybrid
+  modeling\traffic_prediction\data\extracted\ds_20260506_111937\test\images
+train:
+- \\?\C:\Users\Dhia Gdara\OneDrive\Desktop\Real-time traffic flow prediction with
+  hybrid modeling\traffic_prediction\data\master_dataset\train\images
+- C:\Users\Dhia Gdara\OneDrive\Desktop\Real-time traffic flow prediction with hybrid
+  modeling\traffic_prediction\data\extracted\ds_20260426_195223\train\images
+- C:\Users\Dhia Gdara\OneDrive\Desktop\Real-time traffic flow prediction with hybrid
+  modeling\traffic_prediction\data\extracted\ds_20260506_111516\train\images
+- C:\Users\Dhia Gdara\OneDrive\Desktop\Real-time traffic flow prediction with hybrid
+  modeling\traffic_prediction\data\extracted\ds_20260506_111937\train\images
+val:
+- \\?\C:\Users\Dhia Gdara\OneDrive\Desktop\Real-time traffic flow prediction with
+  hybrid modeling\traffic_prediction\data\master_dataset\val\images
+- C:\Users\Dhia Gdara\OneDrive\Desktop\Real-time traffic flow prediction with hybrid
+  modeling\traffic_prediction\data\extracted\ds_20260426_195223\val\images
+- C:\Users\Dhia Gdara\OneDrive\Desktop\Real-time traffic flow prediction with hybrid
+  modeling\traffic_prediction\data\extracted\ds_20260506_111516\val\images
+- C:\Users\Dhia Gdara\OneDrive\Desktop\Real-time traffic flow prediction with hybrid
+  modeling\traffic_prediction\data\extracted\ds_20260506_111937\val\images
